@@ -494,6 +494,7 @@
   let stallTimer = 0;
   let laserCooldown = 0;
   let renderScale = 1;
+  let flipped = false;
   const bgCache = new Map();
   const paddle = { x: W / 2, w: PADDLE_W, targetW: PADDLE_W };
   const fx = { size: 0, speed: 0, speedMul: 1, fire: 0, laser: 0, catch: 0 };
@@ -518,7 +519,7 @@
         const k = def.key[ch] || {};
         const b = {
           col: c,
-          row: r,
+          row: def.rows.length - 1 - r, // The field is drawn flipped, so this keeps the picture upright.
           ch,
           hits: k.hits || 1,
           maxHits: k.hits || 1,
@@ -909,8 +910,7 @@
   function resize() {
     const iw = window.innerWidth || W, ih = window.innerHeight || MIN_H;
     H = Math.round(clamp((W * ih) / iw, MIN_H, MAX_H));
-    const tall = H > 820;
-    PADDLE_Y = H - (tall ? 88 : 46); // On phones, stay clear of the gesture bar and hosting badge.
+    PADDLE_Y = H - 46; // The field is flipped, so this puts the paddle just below the HUD.
     CELL_H = 24 * clamp(H / MIN_H, 1, 1.45);
     BRICKS_Y = HUD + 48 + (H - MIN_H) * 0.1;
     speedScale = Math.sqrt(H / MIN_H);
@@ -1203,7 +1203,7 @@
     const p = POWERS[type];
     ctx.save();
     ctx.translate(x, y);
-    ctx.scale(r / POWER_R, r / POWER_R);
+    ctx.scale(r / POWER_R, (flipped ? -r : r) / POWER_R); // Icons stay upright on the flipped field.
 
     const pulse = reducedMotion ? 0 : (Math.sin(clock * 7) + 1) / 2;
     ctx.globalAlpha = 0.16 + pulse * 0.18;
@@ -1246,9 +1246,9 @@
     ctx.fillStyle = b.flash > 0 ? '#ffffff' : b.color;
     ctx.fill();
     ctx.fillStyle = 'rgba(255,255,255,0.3)';
-    ctx.fillRect(b.x + 3, b.y + 2, b.w - 6, 3);
+    ctx.fillRect(b.x + 3, b.y + b.h - 5, b.w - 6, 3); // Bricks are drawn flipped, so this is the top edge.
     ctx.fillStyle = 'rgba(0,0,0,0.25)';
-    ctx.fillRect(b.x + 3, b.y + b.h - 4, b.w - 6, 2);
+    ctx.fillRect(b.x + 3, b.y + 2, b.w - 6, 2);
     const cx = b.x + b.w / 2, cy = b.y + b.h / 2;
     if (b.steel) {
       for (const dx of [6, b.w - 6]) circle(b.x + dx, cy, 2.2, 'rgba(255,255,255,0.6)');
@@ -1274,6 +1274,9 @@
       ctx.fill();
       ctx.globalAlpha = 1;
     }
+    roundRect(x - 2, PADDLE_Y - 2, paddle.w + 4, PADDLE_H + 4, 11); // Keeps it visible over a bright moon or sun.
+    ctx.fillStyle = '#0b1020';
+    ctx.fill();
     roundRect(x, PADDLE_Y, paddle.w, PADDLE_H, 9);
     ctx.fillStyle = '#f1f5f9';
     ctx.fill();
@@ -1381,7 +1384,7 @@
     if (fx.laser > 0) active.push(['L', fx.laser, 10]);
     if (fx.catch > 0) active.push(['C', fx.catch, 15]);
     active.forEach(([type, left, total], i) => {
-      const x = 26 + i * 44, y = HUD + 22;
+      const x = 26 + i * 44, y = H - 24;
       ctx.save();
       ctx.translate(x, y);
       ctx.scale(0.62, 0.62);
@@ -1449,7 +1452,7 @@
       text(newBest ? 'New best score!' : `Best: ${best.toLocaleString('en-US')}`, W / 2, c + 46, 22, '#facc15');
       text('Click, tap or press Space to play again', W / 2, c + 112, 22, '#cbd5e1', 'center', 500);
     } else if (state === 'play' && balls.some((b) => b.stuck && b.hold === Infinity)) {
-      const y = (bricksBottom() + PADDLE_Y) / 2;
+      const y = H + HUD - (bricksBottom() + PADDLE_Y) / 2;
       text(LEVELS[level - 1].name, W / 2, y - 36, 38, '#ffffff', 'center', 800);
       text(LEVELS[level - 1].picture, W / 2, y + 4, 21, LEVELS[level - 1].accent, 'center', 600);
       text('Click, tap or press Space to launch', W / 2, y + 40, 20, '#cbd5e1', 'center', 500);
@@ -1470,6 +1473,10 @@
     ctx.save();
     if (shake > 0) ctx.translate((Math.random() - 0.5) * 10 * shake, (Math.random() - 0.5) * 10 * shake);
     if (state !== 'menu') {
+      // Game logic runs paddle-at-bottom; flip the view so the paddle is on top and the bottom wall bounces.
+      ctx.translate(0, H + HUD);
+      ctx.scale(1, -1);
+      flipped = true;
       for (const b of bricks) if (b.alive) drawBrick(b);
       for (const c of capsules) drawPower(c.type, c.x, c.y, POWER_R);
       ctx.fillStyle = '#f472b6';
@@ -1485,6 +1492,7 @@
       drawPaddle();
       for (const b of balls) drawBall(b);
       drawPops();
+      flipped = false;
     }
     ctx.restore();
 
@@ -1505,7 +1513,7 @@
     for (const p of particles) {
       p.x += p.vx * dt;
       p.y += p.vy * dt;
-      p.vy += 500 * dt;
+      p.vy -= 500 * dt; // Negative because the field is flipped, so debris still falls down the screen.
       p.life -= dt;
     }
     particles = particles.filter((p) => p.life > 0);

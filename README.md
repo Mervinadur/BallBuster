@@ -8,7 +8,7 @@ A free brick-breaking arcade game that runs in the browser. There's no login, no
 
 Move the paddle with your mouse, your finger or the arrow keys (or A and D). Click, tap or press Space to launch the ball. The buttons at the top right control sound and pausing, and you can also use M and P. Click the game once before using the keyboard, so that it has focus.
 
-Clear every breakable brick to finish a level, and clear all 8 levels to win.
+The paddle is at the top of the screen, and the ball bounces off the bottom wall. Don't let it get past your paddle. Clear every breakable brick to finish a level, and clear all 8 levels to win.
 
 ### Levels
 
