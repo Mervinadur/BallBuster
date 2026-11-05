@@ -10,22 +10,30 @@ from pathlib import Path
 import streamlit as st
 
 GAME_FILE = Path(__file__).parent / "game.html"
-GAME_HEIGHT = 680
+FALLBACK_HEIGHT = 680
 
 st.set_page_config(page_title="BallBuster", page_icon="🧱", layout="centered")
 
-# Trim Streamlit's page chrome so the game fits on screen, especially on phones.
+# Remove Streamlit's page chrome and stretch the game over the visible screen.
+# The game adapts its playfield to whatever height the frame ends up with.
 st.markdown(
     """
     <style>
-      .block-container { padding: 0.5rem 0.5rem 1rem; max-width: 760px; }
-      header[data-testid="stHeader"] { display: none; }
-      #MainMenu, footer { visibility: hidden; }
+      header[data-testid="stHeader"], #MainMenu, footer { display: none; }
+      .block-container, [data-testid="stMainBlockContainer"] {
+        padding: 0 !important;
+        max-width: 760px;
+      }
+      [data-testid="stVerticalBlock"] { gap: 0 !important; }
+      [data-testid="stElementContainer"]:has(style) { display: none; }
+      [data-testid="stElementContainer"]:has(iframe),
+      [data-testid="stElementContainer"]:has(iframe) * {
+        height: 100vh !important;
+        height: 100dvh !important;
+      }
     </style>
     """,
     unsafe_allow_html=True,
 )
 
-st.iframe(GAME_FILE, height=GAME_HEIGHT, alt="BallBuster game")
-
-st.caption("Free to play, with no login or credits. Click the game first to use the keyboard.")
+st.iframe(GAME_FILE, height=FALLBACK_HEIGHT, alt="BallBuster game")
